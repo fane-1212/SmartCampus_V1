@@ -20,12 +20,8 @@ public class RoomService {
 
     public void exportRoomList() {
         System.out.println("=== EXPORT DE LA LISTE DES SALLES ===");
-        if (rooms.isEmpty()) {
-            System.out.println("Aucune salle disponible.");
-        } else {
-            for (int i = 0; i < rooms.size(); i++) {
-                System.out.println((i + 1) + ". " + rooms.get(i));
-            }
+        for (String room : rooms) {
+            System.out.println("- " + room);
         }
         System.out.println("Total : " + rooms.size() + " salles disponibles.");
         System.out.println("=====================================");
@@ -49,21 +45,29 @@ public class RoomService {
         }
     }
 
-    // SC-45 : Modifier les informations d'une salle
     public void updateRoomInfo(String oldRoomName, String newRoomInfo) {
         int index = rooms.indexOf(oldRoomName);
         if (index != -1) {
             rooms.set(index, newRoomInfo);
-            System.out.println("Les informations de la salle ont été modifiées : '" + oldRoomName + "' -> '" + newRoomInfo + "'");
+            System.out.println("Informations modifiées : '" + oldRoomName + "' -> '" + newRoomInfo + "'");
         } else {
-            // On vérifie si elle se trouve dans les salles désactivées
-            int disabledIndex = disabledRooms.indexOf(oldRoomName);
-            if (disabledIndex != -1) {
-                disabledRooms.set(disabledIndex, newRoomInfo);
-                System.out.println("Les informations de la salle désactivée ont été modifiées : '" + oldRoomName + "' -> '" + newRoomInfo + "'");
-            } else {
-                System.out.println("Salle introuvable pour la modification.");
+            System.out.println("Salle introuvable pour la modification.");
+        }
+    }
+
+    // SC-41 : Rechercher une salle par mot-clé
+    public void searchRoom(String keyword) {
+        System.out.println("=== RÉSULTATS DE RECHERCHE POUR '" + keyword + "' ===");
+        boolean found = false;
+        for (String room : rooms) {
+            if (room.toLowerCase().contains(keyword.toLowerCase())) {
+                System.out.println("- " + room);
+                found = true;
             }
         }
+        if (!found) {
+            System.out.println("Aucune salle ne correspond à votre recherche.");
+        }
+        System.out.println("========================================");
     }
 }

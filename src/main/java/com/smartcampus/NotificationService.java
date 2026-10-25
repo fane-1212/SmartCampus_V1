@@ -1,47 +1,60 @@
 package com.smartcampus;
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-class LoginServiceTest {
+public class LoginService {
     
-    @Test
-    void testSuccessfulLogin() {
-        LoginService service = new LoginService();
-        assertTrue(service.authenticate("etudiant@ensak.ac.ma", "SmartCampus2026!"));
+    private String validEmail = "etudiant@ensak.ac.ma";
+    private String validPassword = "SmartCampus2026!";
+    
+    private int failedAttempts = 0;
+    private boolean isBlocked = false;
+    
+    // SC-19 : Variables pour la protection temporelle
+    private long blockTime = 0; 
+    private final long LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes en millisecondes
+
+    public boolean authenticate(String email, String password) {
+        // SC-19 : Vérifier si la période de blocage est terminée
+        if (isBlocked) {
+            if (System.currentTimeMillis() - blockTime > LOCKOUT_DURATION) {
+                isBlocked = false;
+                failedAttempts = 0; // On réinitialise
+                System.out.println("Le temps de blocage est écoulé. Vous pouvez réessayer.");
+            } else {
+                System.out.println("Compte temporairement bloqué. Veuillez patienter.");
+                return false;
+            }
+        }
+
+        if (email == null || password == null || email.isEmpty() || password.isEmpty()) {
+            return false;
+        }
+
+        if (email.equals(validEmail) && password.equals(validPassword)) {
+            failedAttempts = 0; // Succès, on remet à zéro
+            return true;
+        } else {
+            failedAttempts++;
+            if (failedAttempts >= 3) {
+                isBlocked = true;
+                blockTime = System.currentTimeMillis(); // SC-19 : On enregistre l'heure du blocage
+            }
+            return false;
+        }
     }
 
-    @Test
-    void testFailedLogin() {
-        LoginService service = new LoginService();
-        assertFalse(service.authenticate("etudiant@ensak.ac.ma", "MauvaisMotDePasse"));
+    public String getErrorMessage() {
+        if (isBlocked) {
+            return "Votre compte est bloqué temporairement suite à 3 tentatives échouées.";
+        } else if (failedAttempts > 0) {
+            return "Identifiant ou mot de passe incorrect. Tentative " + failedAttempts + "/3.";
+        }
+        return "Identifiant ou mot de passe incorrect.";
     }
 
-    @Test
-    void testAccountBlockedAfterThreeFailures() {
-        LoginService service = new LoginService();
-        
-        // 1er échec
-        service.authenticate("etudiant@ensak.ac.ma", "Faux1");
-        // 2ème échec
-        service.authenticate("etudiant@ensak.ac.ma", "Faux2");
-        // 3ème échec
-        service.authenticate("etudiant@ensak.ac.ma", "Faux3");
-        
-        // Le 4ème essai, même avec le bon mot de passe, doit échouer car le compte est bloqué
-        assertFalse(service.authenticate("etudiant@ensak.ac.ma", "SmartCampus2026!"));
-        assertTrue(service.getErrorMessage().contains("bloqué"));
-    }
-
-    @Test
-    void testChangePassword() {
-        LoginService service = new LoginService();
-        
-        // On change le mot de passe
-        assertTrue(service.changePassword("etudiant@ensak.ac.ma", "SmartCampus2026!", "NouveauMotDePasse123"));
-        
-        // On vérifie que l'ancien ne marche plus et que le nouveau marche
-        assertFalse(service.authenticate("etudiant@ensak.ac.ma", "SmartCampus2026!"));
-        assertTrue(service.authenticate("etudiant@ensak.ac.ma", "NouveauMotDePasse123"));
+    public boolean changePassword(String email, String oldPassword, String newPassword) {
+        if (!email.equals(validEmail) || !oldPassword.equals(validPassword)) return false;
+        if (newPassword == null || newPassword.length() < 8) return false;
+        this.validPassword = newPassword;
+        return true;
     }
 }

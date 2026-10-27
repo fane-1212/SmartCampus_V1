@@ -1,0 +1,62 @@
+package com.smartcampus.service;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Service de connexion (AUTH). Complété par SC-11 ; tests dans SC-14.
+ */
+public class LoginService {
+
+    private final Map<String, String> users = new ConcurrentHashMap<>();
+    private final Map<String, Integer> failedAttempts = new ConcurrentHashMap<>();
+    private final int maxFailedAttempts;
+
+    public LoginService() {
+        this(3);
+    }
+
+    public LoginService(int maxFailedAttempts) {
+        this.maxFailedAttempts = maxFailedAttempts;
+        users.put("etudiant@ensa.ma", "motdepasse123");
+    }
+
+    public void registerUser(String email, String password) {
+        users.put(email, password);
+    }
+
+    public LoginResult login(String email, String password) {
+        if (email == null || email.isBlank()) {
+            return LoginResult.failure("L'e-mail est obligatoire.");
+        }
+        if (password == null || password.isBlank()) {
+            return LoginResult.failure("Le mot de passe est obligatoire.");
+        }
+
+        String expected = users.get(email);
+        if (expected != null && expected.equals(password)) {
+            failedAttempts.remove(email);
+            return LoginResult.ok();
+        }
+
+        int attempts = failedAttempts.merge(email, 1, Integer::sum);
+        if (attempts >= maxFailedAttempts) {
+            return LoginResult.failure("Compte temporairement bloqué après plusieurs tentatives.");
+        }
+        return LoginResult.failure("E-mail ou mot de passe incorrect.");
+    }
+
+    public int getFailedAttempts(String email) {
+        return failedAttempts.getOrDefault(email, 0);
+    }
+
+    public record LoginResult(boolean success, String message) {
+        public static LoginResult ok() {
+            return new LoginResult(true, null);
+        }
+
+        public static LoginResult failure(String message) {
+            return new LoginResult(false, message);
+        }
+    }
+}

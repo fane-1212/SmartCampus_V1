@@ -1,0 +1,49 @@
+package com.smartcampus.service;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class LoginServiceTest {
+
+    private LoginService loginService;
+
+    @BeforeEach
+    void setUp() {
+        loginService = new LoginService(3);
+    }
+
+    @Test
+    void login_withValidCredentials_succeeds() {
+        LoginService.LoginResult result =
+                loginService.login("etudiant@ensa.ma", "motdepasse123");
+
+        assertTrue(result.success());
+        assertEquals(0, loginService.getFailedAttempts("etudiant@ensa.ma"));
+    }
+
+    @Test
+    void login_withWrongPassword_returnsClearMessage() {
+        LoginService.LoginResult result =
+                loginService.login("etudiant@ensa.ma", "mauvais");
+
+        assertFalse(result.success());
+        assertEquals("E-mail ou mot de passe incorrect.", result.message());
+        assertEquals(1, loginService.getFailedAttempts("etudiant@ensa.ma"));
+    }
+
+    @Test
+    void login_afterThreeFailures_returnsBlockedMessage() {
+        loginService.login("etudiant@ensa.ma", "x");
+        loginService.login("etudiant@ensa.ma", "x");
+        LoginService.LoginResult third =
+                loginService.login("etudiant@ensa.ma", "x");
+
+        assertFalse(third.success());
+        assertTrue(third.message().contains("bloqué"));
+        assertEquals(3, loginService.getFailedAttempts("etudiant@ensa.ma"));
+    }
+}
